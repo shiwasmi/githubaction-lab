@@ -7,11 +7,11 @@ on:
   pull_request:
 
 env:
-  APP_NAME: easymytrip
+  APP_NAME: githubaction-lab
   VERSION: 1.1.${{ github.run_number }}
-  IMAGE_LOCAL: bookmyplan:latest
-  IMAGE_DOCKERHUB: satyam88/bookmyplan:latest
-  IMAGE_ECR: 445847647410.dkr.ecr.ap-south-1.amazonaws.com/bookmyplan:latest
+  IMAGE_LOCAL: githubaction-lab:latest
+  IMAGE_DOCKERHUB: sagardocker/githubaction-lab:latest
+  IMAGE_ECR: 445847647410.dkr.ecr.ap-south-1.amazonaws.com/githubaction-lab:latest
 
 jobs:
   build:
