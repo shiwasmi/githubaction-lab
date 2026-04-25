@@ -54,7 +54,7 @@ jobs:
           docker tag $IMAGE_LOCAL $IMAGE_DOCKERHUB
 
       - name: Scan Docker Image with Trivy
-        uses: aquasecurity/trivy-action@0.20.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.IMAGE_LOCAL }}
           exit-code: '0'
