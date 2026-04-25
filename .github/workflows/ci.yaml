@@ -10,7 +10,7 @@ env:
   APP_NAME: githubaction-lab
   VERSION: 1.1.${{ github.run_number }}
   IMAGE_LOCAL: githubaction-lab:latest
-  IMAGE_DOCKERHUB: sagardocker/githubaction-lab:latest
+  IMAGE_DOCKERHUB: sagarchattar/githubaction-lab:latest
   IMAGE_ECR: 445847647410.dkr.ecr.ap-south-1.amazonaws.com/githubaction-lab:latest
 
 jobs:
