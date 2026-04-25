@@ -9,13 +9,23 @@ on:
 env:
   APP_NAME: githubaction-lab
   VERSION: 1.1.${{ github.run_number }}
-  IMAGE_LOCAL: githubaction-lab:latest
-  IMAGE_DOCKERHUB: sagarchattar/githubaction-lab:latest
-  IMAGE_ECR: 251335054837.dkr.ecr.ap-south-1.amazonaws.com/githubaction-lab:latest
+
+  IMAGE_TAG: ${{ github.run_number }}
+
+  IMAGE_LOCAL: githubaction-lab:${{ github.run_number }}
+  IMAGE_LOCAL_LATEST: githubaction-lab:latest
+
+  IMAGE_DOCKERHUB: sagarchattar/githubaction-lab:${{ github.run_number }}
+  IMAGE_DOCKERHUB_LATEST: sagarchattar/githubaction-lab:latest
+
+  IMAGE_ECR: 251335054837.dkr.ecr.ap-south-1.amazonaws.com/githubaction-lab:${{ github.run_number }}
+  IMAGE_ECR_LATEST: 251335054837.dkr.ecr.ap-south-1.amazonaws.com/githubaction-lab:latest
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+
+  build-test:
+    name: Compile,Test & Package
+    runs-on: self-hosted
 
     steps:
       - name: Checkout Code
@@ -27,6 +37,31 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
+      - name: Install Maven 3.9.12 if not present
+        shell: bash
+        run: |
+          set -e
+
+          MAVEN_VERSION=3.9.12
+          MAVEN_DIR=/opt/maven/apache-maven-$MAVEN_VERSION
+          MAVEN_BIN=$MAVEN_DIR/bin/mvn
+
+          if [ -x "$MAVEN_BIN" ]; then
+            echo "✅ Maven $MAVEN_VERSION already installed"
+          else
+            echo "⬇️ Installing Maven $MAVEN_VERSION..."
+            sudo dnf install -y wget tar
+
+            sudo mkdir -p /opt/maven
+            cd /tmp
+            wget https://archive.apache.org/dist/maven/maven-3/$MAVEN_VERSION/binaries/apache-maven-$MAVEN_VERSION-bin.tar.gz
+            sudo tar -xzf apache-maven-$MAVEN_VERSION-bin.tar.gz -C /opt/maven
+
+            sudo ln -sf $MAVEN_BIN /usr/local/bin/mvn
+          fi
+
+          mvn -version
+
       - name: Cache Maven packages
         uses: actions/cache@v4
         with:
@@ -34,28 +69,47 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
 
-      - name: Verify
-        run: mvn clean verify
-
-      - name: Compile
-        run: mvn clean compile
-
-      - name: Build with Maven
-        run: mvn -B package --file pom.xml
-
       - name: Package Artifact
-        run: |
-          mvn package -DskipTests
-          cp target/*.jar target/${APP_NAME}-${VERSION}.jar
+        run: mvn package -DskipTests
+
+      - name: Upload JAR Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-jar
+          path: target/*.jar
+
+
+  docker-build-scan-push:
+    name: Docker Build, Scan & Push to ECR
+    runs-on: self-hosted
+    needs: build-test
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download JAR Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-jar
+          path: target/
+
+      - name: Verify downloaded artifact
+        run: ls -l target
 
       - name: Build Docker Image
         run: |
           docker build -t $IMAGE_LOCAL .
+          docker tag $IMAGE_LOCAL $IMAGE_LOCAL_LATEST
+
           docker tag $IMAGE_LOCAL $IMAGE_DOCKERHUB
+          docker tag $IMAGE_LOCAL $IMAGE_DOCKERHUB_LATEST
+
           docker tag $IMAGE_LOCAL $IMAGE_ECR
+          docker tag $IMAGE_LOCAL $IMAGE_ECR_LATEST
 
       - name: Scan Docker Image with Trivy
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@0.20.0
         with:
           image-ref: ${{ env.IMAGE_LOCAL }}
           exit-code: '0'
@@ -66,7 +120,9 @@ jobs:
           echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Push to Docker Hub
-        run: docker push $IMAGE_DOCKERHUB
+        run: |
+          docker push $IMAGE_DOCKERHUB
+          docker push $IMAGE_DOCKERHUB_LATEST
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -81,9 +137,17 @@ jobs:
           | docker login --username AWS --password-stdin 251335054837.dkr.ecr.ap-south-1.amazonaws.com
 
       - name: Push to Amazon ECR
-        run: docker push $IMAGE_ECR
+        run: |
+          docker push $IMAGE_ECR
+          docker push $IMAGE_ECR_LATEST
 
       - name: Cleanup Docker Images
         if: always()
         run: |
           docker rmi $IMAGE_LOCAL || true
+          docker rmi $IMAGE_LOCAL_LATEST || true
+          docker rmi $IMAGE_DOCKERHUB || true
+          docker rmi $IMAGE_DOCKERHUB_LATEST || true
+          docker rmi $IMAGE_ECR || true
+          docker rmi $IMAGE_ECR_LATEST || true
+          docker image prune -f || true
