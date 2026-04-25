@@ -15,7 +15,7 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest # GitHub-hosted runner
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Code
@@ -52,6 +52,7 @@ jobs:
         run: |
           docker build -t $IMAGE_LOCAL .
           docker tag $IMAGE_LOCAL $IMAGE_DOCKERHUB
+          docker tag $IMAGE_LOCAL $IMAGE_ECR
 
       - name: Scan Docker Image with Trivy
         uses: aquasecurity/trivy-action@v0.36.0
