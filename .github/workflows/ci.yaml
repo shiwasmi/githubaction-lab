@@ -25,7 +25,7 @@ jobs:
 
   build-test:
     name: Compile,Test & Package
-    runs-on: mygithub-runner
+    runs-on: Self-hosted
 
     steps:
       - name: Checkout Code
@@ -81,7 +81,7 @@ jobs:
 
   docker-build-scan-push:
     name: Docker Build, Scan & Push to ECR
-    runs-on: mygithub-runner
+    runs-on: Self-hosted
     needs: build-test
 
     steps:
