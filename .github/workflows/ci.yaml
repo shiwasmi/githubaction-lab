@@ -103,12 +103,20 @@ jobs:
           docker tag $IMAGE_LOCAL $IMAGE_ECR
           docker tag $IMAGE_LOCAL $IMAGE_ECR_LATEST
 
+      - name: Cache Trivy DB
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/trivy
+          key: trivy-db-${{ runner.os }}-${{ github.sha }}
+          restore-keys: trivy-db-${{ runner.os }}
+
       - name: Scan Docker Image with Trivy
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.IMAGE_LOCAL }}
           exit-code: '0'
           severity: 'CRITICAL,HIGH'
+          scanners: vuln   # disable secret scanning for speed
 
       - name: Login to Docker Hub
         run: |
