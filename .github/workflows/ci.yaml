@@ -117,6 +117,7 @@ jobs:
           exit-code: '0'
           severity: 'CRITICAL,HIGH'
           scanners: vuln   # disable secret scanning for speed
+          vuln-type: os,library
 
       - name: Login to Docker Hub
         run: |
