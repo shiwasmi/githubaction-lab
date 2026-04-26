@@ -81,7 +81,7 @@ jobs:
 
   docker-build-scan-push:
     name: Docker Build, Scan & Push to ECR
-    runs-on: self-hosted
+    runs-on: mygithub-runner
     needs: build-test
 
     steps:
