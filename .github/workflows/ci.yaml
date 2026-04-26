@@ -24,8 +24,8 @@ env:
 jobs:
 
   build-test:
-    name: Compile,Test & Package
-    runs-on: Self-hosted
+    name: Build, Test & Package
+    runs-on: self-hosted
 
     steps:
       - name: Checkout Code
@@ -41,7 +41,6 @@ jobs:
         shell: bash
         run: |
           set -e
-
           MAVEN_VERSION=3.9.12
           MAVEN_DIR=/opt/maven/apache-maven-$MAVEN_VERSION
           MAVEN_BIN=$MAVEN_DIR/bin/mvn
@@ -51,12 +50,10 @@ jobs:
           else
             echo "⬇️ Installing Maven $MAVEN_VERSION..."
             sudo dnf install -y wget tar
-
             sudo mkdir -p /opt/maven
             cd /tmp
             wget https://archive.apache.org/dist/maven/maven-3/$MAVEN_VERSION/binaries/apache-maven-$MAVEN_VERSION-bin.tar.gz
             sudo tar -xzf apache-maven-$MAVEN_VERSION-bin.tar.gz -C /opt/maven
-
             sudo ln -sf $MAVEN_BIN /usr/local/bin/mvn
           fi
 
@@ -80,8 +77,8 @@ jobs:
 
 
   docker-build-scan-push:
-    name: Docker Build, Scan & Push to ECR
-    runs-on: Self-hosted
+    name: Docker Build, Scan & Push
+    runs-on: self-hosted
     needs: build-test
 
     steps:
@@ -101,10 +98,8 @@ jobs:
         run: |
           docker build -t $IMAGE_LOCAL .
           docker tag $IMAGE_LOCAL $IMAGE_LOCAL_LATEST
-
           docker tag $IMAGE_LOCAL $IMAGE_DOCKERHUB
           docker tag $IMAGE_LOCAL $IMAGE_DOCKERHUB_LATEST
-
           docker tag $IMAGE_LOCAL $IMAGE_ECR
           docker tag $IMAGE_LOCAL $IMAGE_ECR_LATEST
 
